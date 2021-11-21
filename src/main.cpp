@@ -2,6 +2,7 @@
 
 // ============== hardware ================ //
 uint8_t relay_io = 4;
+uint8_t light_io = A0;;
 
 #define DEBUG 0
 
@@ -37,6 +38,8 @@ void setup()
 
     pinMode(relay_io, OUTPUT);
     digitalWrite(relay_io, HIGH);
+
+    pinMode(light_io, INPUT_PULLUP);
 }
 
 bool check_sum(uint8_t list[], int len)
@@ -111,22 +114,50 @@ void loop()
                         Serial1.write(turn_cmd[i]);
                     }
 
-                    delay(2500);
+                    uint16_t wait = 0;
+                    uint16_t succcess = 0;
+                    while(wait ++ < 500)
+                    {
+                        if (digitalRead(light_io) == LOW)
+                        {
+                            succcess = 1;
+                            break;
+                        }
+                        delay(5);
+                    }
+                    
+                    delay(5);
+
+                    // delay(2500);
 
                     for (uint8_t i = 0; i< sizeof(stop_cmd); i++)
                     {
                         Serial1.write(stop_cmd[i]);
                     }
 
+                    delay(20);
+
                     // feedback
-                    Serial1.write(commdata[0]);
-                    Serial1.write(commdata[1]);
-                    Serial1.write(commdata[2]);
-                    Serial1.write(commdata[4]);
+                    if (succcess)
+                    {
+                        Serial1.write(commdata[0]);
+                        Serial1.write(commdata[1]);
+                        Serial1.write(commdata[2]);
+                        Serial1.write(0x01);
+                        Serial1.write(commdata[4]);
+                    }
+                    else{
+                        Serial1.write(commdata[0]);
+                        Serial1.write(commdata[1]);
+                        Serial1.write(commdata[2]);
+                        Serial1.write(0x00);
+                        Serial1.write(commdata[4]);
+                    }
+                    
                 }
                 else if (commdata[1] == 0xF4)       // 速度模式
                 {
-                    length_read = commdata[3];
+                    length_read = commdata[3] + 1;
                     for (int8_t i = 0; i< length_read; i++)
                     {
                         delay(2);
@@ -318,7 +349,15 @@ void loop()
         Serial.println(d);
         
     }
+    
+    // Serial.print("light: ");
+    // Serial.println(analogRead(light_io));
+
+
 #endif
+
+    
+
 
     delay(2);
 
